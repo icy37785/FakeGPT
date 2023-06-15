@@ -48,8 +48,8 @@ func CreateShareTokenByAccessToken(accessToken, uniqueName string) (string, erro
 			UniqueName        string `json:"unique_name"`
 			ShareToken        string `json:"token_key"`
 			SiteLimit         string `json:"site_limit"`
-			ShowUserinfo      string `json:"show_userinfo"`
-			ShowConversations string `json:"show_conversations"`
+			ShowUserinfo      bool   `json:"show_userinfo"`
+			ShowConversations bool   `json:"show_conversations"`
 			ExpiresIn         int    `json:"expire_at"`
 		}
 		err := json.NewDecoder(resp.Body).Decode(&response)
@@ -63,7 +63,7 @@ func CreateShareTokenByAccessToken(accessToken, uniqueName string) (string, erro
 
 		return response.ShareToken, nil
 	}
-	return "", errors.New("error get share token")
+	return "", fmt.Errorf("share token failed: %s", resp.Body)
 }
 
 // CreatePoolToken 依据share_token生成pool_token
@@ -108,5 +108,5 @@ func UpdatePoolToken(shareTokens []string, poolToken string) (string, error) {
 
 		return response.PoolToken, nil
 	}
-	return "", errors.New("error get pool token")
+	return "", fmt.Errorf("generate pool token failed: %s", resp.Body)
 }
