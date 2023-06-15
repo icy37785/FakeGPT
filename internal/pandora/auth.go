@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"time"
 )
+
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 
 // 创建一个cookie jar
 var jar, _ = cookiejar.New(nil)
@@ -65,7 +68,7 @@ func NewAuth0(email, password, proxy string, useCache bool, mfa string) *Auth0 {
 		},
 		accessToken: "",
 		expires:     time.Time{},
-		userAgent:   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+		userAgent:   userAgent,
 		apiPrefix:   apiPrefix,
 	}
 }
@@ -111,7 +114,12 @@ func (a *Auth0) partThree(codeVerifier, urlStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("do request_partThree error: %s", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
 		urlParams, _ := url.ParseQuery(resp.Request.URL.RawQuery)
@@ -157,7 +165,12 @@ func (a *Auth0) partFour(codeVerifier, state string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error checking email: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusFound {
 		return a.partFive(codeVerifier, state)
@@ -194,7 +207,12 @@ func (a *Auth0) partFive(codeVerifier, state string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error logging in: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
@@ -226,7 +244,12 @@ func (a *Auth0) partSix(codeVerifier, location, urlStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error logging in: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
@@ -277,7 +300,12 @@ func (a *Auth0) partSeven(codeVerifier, location string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error MFA: %s", err.Error())
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
@@ -338,7 +366,12 @@ func (a *Auth0) getAccessToken(codeVerifier, callbackURL string) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("error getting access token: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
 		var response struct {
@@ -391,7 +424,12 @@ func (a *Auth0) getAccessTokenProxy() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting access token: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
 		var response struct {
