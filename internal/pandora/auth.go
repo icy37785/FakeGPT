@@ -25,10 +25,11 @@ type Auth0 struct {
 	mfa          string
 	session      *http.Client
 	//reqKwargs    map[string]interface{}
-	accessToken string
-	expires     time.Time
-	userAgent   string
-	apiPrefix   string
+	accessToken  string
+	refreshToken string
+	expires      time.Time
+	userAgent    string
+	apiPrefix    string
 }
 
 func NewAuth0(email, password, proxy string, useCache bool, mfa string) *Auth0 {
@@ -295,7 +296,12 @@ func (a *Auth0) partSeven(codeVerifier, location string) (string, error) {
 }
 
 func (a *Auth0) getAccessToken(codeVerifier, callbackURL string) (string, error) {
-	urlParams, _ := url.ParseQuery(callbackURL)
+	parsedURL, err := url.Parse(callbackURL)
+	if err != nil {
+		return "", fmt.Errorf("error parsing callback url: %v", err)
+	}
+	urlParams := parsedURL.Query()
+
 	if errorParam := urlParams.Get("error"); errorParam != "" {
 		errorDesc := urlParams.Get("error_description")
 		return "", fmt.Errorf("%s: %s", errorParam, errorDesc)
@@ -336,15 +342,21 @@ func (a *Auth0) getAccessToken(codeVerifier, callbackURL string) (string, error)
 
 	if resp.StatusCode == http.StatusOK {
 		var response struct {
-			AccessToken string `json:"access_token"`
-			ExpiresIn   int    `json:"expires_in"`
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+			ExpiresIn    int    `json:"expires_in"`
 		}
 		err := json.NewDecoder(resp.Body).Decode(&response)
 		if err != nil {
 			return "", fmt.Errorf("error decoding response: %v", err)
 		}
 
+		if response.AccessToken == "" {
+			return "", errors.New("get access token failed, maybe you need a proxy")
+		}
+
 		a.accessToken = response.AccessToken
+		a.refreshToken = response.RefreshToken
 		expiresAt := time.Now().UTC().Add(time.Second * time.Duration(response.ExpiresIn)).Add(-5 * time.Minute)
 		a.expires = expiresAt
 		return a.accessToken, nil
@@ -388,7 +400,11 @@ func (a *Auth0) getAccessTokenProxy() (string, error) {
 		}
 		err := json.NewDecoder(resp.Body).Decode(&response)
 		if err != nil {
-			return "", fmt.Errorf("error decoding response: %v", err)
+			return "", fmt.Errorf("get access token failed.: %v", err)
+		}
+
+		if response.AccessToken == "" {
+			return "", errors.New("get access token failed")
 		}
 
 		a.accessToken = response.AccessToken
@@ -397,5 +413,5 @@ func (a *Auth0) getAccessTokenProxy() (string, error) {
 		return a.accessToken, nil
 	}
 
-	return "", fmt.Errorf("error getting access token: %s", resp.Status)
+	return "", errors.New("error get access token")
 }
